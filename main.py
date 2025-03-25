@@ -9,9 +9,9 @@ class Main():
         
 
     def main(self):
+        self.createUser()
 
-
-        conn = self.Connect()
+        """conn = self.connect()
         if conn == False:
             return()
         fd = conn.cursor()
@@ -22,7 +22,7 @@ class Main():
         ret = fd.fetchall()
         for row in ret:
             print(row)
-        print(conn.total_changes)
+        print(conn.total_changes)"""
 
     def connect(self):
         try:
@@ -42,11 +42,24 @@ class Main():
         password = input("enter password")
         passcheck = input("enter password again")
         conn = self.connect()
+        if password != passcheck:
+            return False
         if conn == False:
             return False
+        fd = conn.cursor()
+        fd.execute("SELECT Username FROM Users WHERE Username = ?;", (username,))
+        ret = fd.fetchall()
+        for row in ret:
+            if row == username:
+                print("Username taken")
+                return False
+        print(ret)
+        
+        
+
         
 
 
 if __name__ == "__main__":
-    game = Main()
-    game.main()
+    app = Main()
+    app.main()
