@@ -70,13 +70,18 @@ class Main():
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(password,salt)
         fd.execute("SELECT Username,Password FROM Users WHERE Username = ?;", (username,))
+        conn.commit()
         ret = fd.fetchall()
+        if not ret:
+            print("No user '" + username + "' in db")            
+        
         for row in ret:
             if row[0] == username:
                 if hashed == row[1]:
                     self.curUser = username
-
-
+                else:
+                    print("invalid password")
+            print("prout")
         
         
 
