@@ -5,12 +5,11 @@ DB = "./db/test.db"
 
 class Main():
     def __init__(self):
-        pass
-        
+        self.curUser = ""
 
     def main(self):
-        self.createUser()
-
+        #self.createUser()
+        self.login()
         """conn = self.connect()
         if conn == False:
             return()
@@ -41,19 +40,43 @@ class Main():
         username = input("enter username")
         password = input("enter password")
         passcheck = input("enter password again")
-        conn = self.connect()
         if password != passcheck:
+            print("passwords do not match")
             return False
+        conn = self.connect()
         if conn == False:
             return False
         fd = conn.cursor()
+        fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
+        conn.commit()
         fd.execute("SELECT Username FROM Users WHERE Username = ?;", (username,))
         ret = fd.fetchall()
         for row in ret:
-            if row == username:
+            if row[0] == username:
                 print("Username taken")
                 return False
-        print(ret)
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password, salt)
+        fd.execute("INSERT INTO Users VALUES(?,?)", (username, hashed))
+        conn.commit()
+        
+    def login(self):
+        username = input("enter username")
+        password = input("enter password")
+        conn = self.connect()
+        if conn == False:
+            return False
+        fd = conn.cursor()
+        salt = bcrypt.gensalt()
+        hashed = bcrypt.hashpw(password,salt)
+        fd.execute("SELECT Username,Password FROM Users WHERE Username = ?;", (username,))
+        ret = fd.fetchall()
+        for row in ret:
+            if row[0] == username:
+                if hashed == row[1]:
+                    self.curUser = username
+
+
         
         
 
