@@ -27,7 +27,7 @@ class Ui():
         login_label = tkinter.Label(self.frame, text="", bg="black", font=("Arial", 10))
         login_label.grid(row=3, column=0, columnspan=2, pady=5)
         if test == True:
-            login_label.config(text="Bienvenue", fg="green")
+            self.show_users()
         else:
             login_label.config(text="Identifiants incorrects", fg="red")
 
@@ -51,10 +51,6 @@ class Ui():
 
         signup_button = tkinter.Button(self.frame, text="Inscription", command=self.show_signup, bg="#879ACB", fg="black", font=("Arial", 12))
         signup_button.grid(row=2, column=1, pady=10)
-
-
-
-
 
     def register(self):
         user = self.signup_username.get()
@@ -94,6 +90,25 @@ class Ui():
 
         self.status_label = tkinter.Label(self.frame, text="", bg="black", font=("Arial", 10))
         self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
+
+    def show_users(self):
+        self.clear_frame()
+        tkinter.Label(self.frame, text="Liste des utilisateurs", font=("Arial", 14, "bold"), bg="black").grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        conn = self.db.connect()
+        if conn == False:
+            self.status_label.config(text="nope", fg="red")
+        users = self.db.get_all_users()
+        for user in users:
+            user_label = tkinter.Label(self.frame, text=user[0], bg="black", font=("Arial", 12))
+            user_label.grid(row=1, column=0, sticky="w", pady=5) 
+        self.status_label = tkinter.Label(self.frame, text="", bg="black", font=("Arial", 10))
+        self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
+        tkinter.Button(self.frame, text="Déconnexion", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=10)
+
+
+        
+    
+        
 
 class Main():
     def __init__(self):
