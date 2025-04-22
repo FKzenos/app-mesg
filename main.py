@@ -159,7 +159,7 @@ class Ui():
                 if b"-----BEGIN" not in key or b"-----END" not in key:
                     raise ValueError("Le format de la clé n'est pas PEM.")
                 rsa_key = RSA.import_key(key.strip())
-                self.cipher_rsa = PKCS1_OAEP.new(rsa_key)
+                cipher_rsa = PKCS1_OAEP.new(rsa_key)
         except Exception as e:
             print(f"[ERREUR CLE PRIVEE] {e}")
             messagebox.showerror("Erreur", "Impossible de charger la clé privée de l'utilisateur courant.")
@@ -167,11 +167,11 @@ class Ui():
 
         try:
             with open(f"./keys/{user}/key.pem", "rb") as f:
-                user_key = f.read()
-                if b"-----BEGIN" not in user_key or b"-----END" not in user_key:
+                userkey = f.read()
+                if b"-----BEGIN" not in userkey or b"-----END" not in userkey:
                     raise ValueError("Le format de la clé n'est pas PEM.")
-                user_rsa_key = RSA.import_key(user_key.strip())
-                self.user_cipher_rsa = PKCS1_OAEP.new(user_rsa_key)
+                userrsa_key = RSA.import_key(userkey.strip())
+                usercipher_rsa = PKCS1_OAEP.new(userrsa_key)
         except Exception as e:
             print(f"[ERREUR CLE PUBLIQUE] {e}")
             messagebox.showerror("Erreur", "Impossible de charger la clé publique du destinataire.")
@@ -199,11 +199,6 @@ class Ui():
         self.lang_dropdown.set("Français")
         self.lang_dropdown.grid(row=2, column=1, padx=10, pady=10)
 
-        # Bouton envoyer
-        tkinter.Button(
-            self.frame, text="Envoyer", command=lambda: self.send_message(user),
-            bg="#4CAF50", fg="white", font=("Arial", 12)
-        ).grid(row=3, column=0, columnspan=2, pady=10)
 
         # Bouton retour
         tkinter.Button(
@@ -218,7 +213,7 @@ class Ui():
         ).grid(row=4, column=1, pady=10)
 
         # Chargement des messages dans le chat_display
-        self.load_chat(chats)
+        self.db.chat(user,self.curUser)
 
         def update_language(event):
             lang_name = self.lang_dropdown.get()
