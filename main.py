@@ -7,6 +7,8 @@ from Crypto.Random import get_random_bytes
 import os
 from tkinter import ttk
 import tkinter.messagebox as messagebox 
+from deep_translator import GoogleTranslator
+
 
 DB = "test.db"
 
@@ -134,59 +136,89 @@ class Ui():
     def show_chat(self, user):
         self.clear_frame()
 
-        # Affichage du titre du chat
-        tkinter.Label(self.frame, text=f"Chat avec {user}", font=("Arial", 14, "bold"), bg="#2C3E50", fg="white").grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        # Titre du chat
+        tkinter.Label(
+            self.frame, text=f"Chat avec {user}", font=("Arial", 14, "bold"),
+            bg="#2C3E50", fg="white"
+        ).grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         # Zone d'affichage des messages
-        self.chat_display = tkinter.Text(self.frame, bg="black", fg="white", font=("Arial", 12), state="disabled", width=50, height=20)
+        self.chat_display = tkinter.Text(
+            self.frame, bg="black", fg="white", font=("Arial", 12),
+            state="disabled", width=50, height=20
+        )
         self.chat_display.grid(row=1, column=0, columnspan=2, pady=10)
 
+        # Chargement des messages
         chats = self.db.chat(user, self.curUser)
+
+        # --- Chargement des clés RSA ---
         try:
             with open(f"./keys/{self.curUser}/key.pem", "rb") as f:
                 key = f.read()
                 if b"-----BEGIN" not in key or b"-----END" not in key:
                     raise ValueError("Le format de la clé n'est pas PEM.")
-                key = key.strip()
-                rsa_key = RSA.import_key(key)
-                cipher_rsa = PKCS1_OAEP.new(rsa_key)
-        except ValueError as e:
-            print(f"Erreur lors du chargement de la clé : {e}")
-            messagebox.showerror("Erreur", "Le format de la clé RSA n'est pas pris en charge ou invalide.")
-            return
+                rsa_key = RSA.import_key(key.strip())
+                self.cipher_rsa = PKCS1_OAEP.new(rsa_key)
         except Exception as e:
-            print(f"Erreur inattendue : {e}")
-            messagebox.showerror("Erreur", "Impossible de charger la clé privée.")
+            print(f"[ERREUR CLE PRIVEE] {e}")
+            messagebox.showerror("Erreur", "Impossible de charger la clé privée de l'utilisateur courant.")
             return
+
         try:
-            with open(f"./keys/{user}/key.pem", "rb") as ff:
-                userkey = ff.read()
-                if b"-----BEGIN" not in userkey or b"-----END" not in userkey:
+            with open(f"./keys/{user}/key.pem", "rb") as f:
+                user_key = f.read()
+                if b"-----BEGIN" not in user_key or b"-----END" not in user_key:
                     raise ValueError("Le format de la clé n'est pas PEM.")
-                userkey = userkey.strip()
-                userrsa_key = RSA.import_key(userkey)
-                usercipher_rsa = PKCS1_OAEP.new(userrsa_key)
-        except ValueError as e:
-            print(f"Erreur lors du chargement de la clé : {e}")
-            messagebox.showerror("Erreur", "Le format de la clé RSA n'est pas pris en charge ou invalide.")
-            return
+                user_rsa_key = RSA.import_key(user_key.strip())
+                self.user_cipher_rsa = PKCS1_OAEP.new(user_rsa_key)
         except Exception as e:
-            print(f"Erreur inattendue : {e}")
-            messagebox.showerror("Erreur", "Impossible de charger la clé privée.")
+            print(f"[ERREUR CLE PUBLIQUE] {e}")
+            messagebox.showerror("Erreur", "Impossible de charger la clé publique du destinataire.")
             return
-            languages = {
+
+        # Zone d’entrée de message
+        self.message_entry = tkinter.Entry(self.frame, font=("Arial", 12))
+        self.message_entry.grid(row=2, column=0, padx=10, pady=10)
+
+        # --- Menu de sélection de langue ---
+        languages = {
             "Français": "fr",
             "Anglais": "en",
             "Espagnol": "es",
             "Allemand": "de",
             "Italien": "it",
-            "Japonais": "ja"
+            "Portugais": "pt",
+            "Néerlandais": "nl",
+            "Polonais": "pl",
+            "Arabe": "ar",
+            "Japonais": "ja",
+            "Chinois": "zh-CN"
         }
-
-        tkinter.Label(self.frame, text="Langue de traduction :", bg="#2C3E50", font=("Arial", 10)).grid(row=4, column=0, sticky="e", padx=10)
         self.lang_dropdown = ttk.Combobox(self.frame, values=list(languages.keys()), font=("Arial", 10))
         self.lang_dropdown.set("Français")
-        self.lang_dropdown.grid(row=4, column=1, sticky="w", padx=10)
+        self.lang_dropdown.grid(row=2, column=1, padx=10, pady=10)
+
+        # Bouton envoyer
+        tkinter.Button(
+            self.frame, text="Envoyer", command=lambda: self.send_message(user),
+            bg="#4CAF50", fg="white", font=("Arial", 12)
+        ).grid(row=3, column=0, columnspan=2, pady=10)
+
+        # Bouton retour
+        tkinter.Button(
+            self.frame, text="Retour", command=self.show_users,
+            bg="#e67e22", fg="white", font=("Arial", 12)
+        ).grid(row=4, column=0, pady=10)
+
+        # Bouton déconnexion
+        tkinter.Button(
+            self.frame, text="Déconnexion", command=self.show_login,
+            bg="#c0392b", fg="white", font=("Arial", 12)
+        ).grid(row=4, column=1, pady=10)
+
+        # Chargement des messages dans le chat_display
+        self.load_chat(chats)
 
         def update_language(event):
             lang_name = self.lang_dropdown.get()
