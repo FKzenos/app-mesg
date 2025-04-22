@@ -95,7 +95,14 @@ class Ui():
 
     def show_users(self):
         self.clear_frame()
-        self.db.users(self.curUser)
+        tkinter.Label(self.frame, text="Liste des utilisateurs", font=("Arial", 14, "bold"), bg="black").grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        users = self.db.users(self.curUser)
+        for user in users:
+            user_label = tkinter.Label(self.frame, text=user[0], bg="black", font=("Arial", 12))
+            user_label.grid(row=1, column=0, sticky="w", pady=5) 
+        self.status_label = tkinter.Label(self.frame, text="", bg="black", font=("Arial", 10))
+        self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
+        tkinter.Button(self.frame, text="Déconnexion", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=10)
 
 class Main():
     def __init__(self):
@@ -188,6 +195,7 @@ class DbHandler():
         fd.execute("SELECT Username FROM Users") 
         conn.commit()
         ret = fd.fetchall()
+        return ret
         for row in ret:
             if row[0] == curUser:
                 continue
