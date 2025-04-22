@@ -2,7 +2,6 @@ import sqlite3
 import bcrypt
 import tkinter
 
-
 DB = "test.db"
 
 class Ui():
@@ -28,6 +27,8 @@ class Ui():
         login_label.grid(row=3, column=0, columnspan=2, pady=5)
         if test == True:
             login_label.config(text="Bienvenue", fg="green")
+            self.curUser = username
+            self.show_users()
         else:
             login_label.config(text="Identifiants incorrects", fg="red")
 
@@ -69,6 +70,7 @@ class Ui():
             self.status_label.config(text="Les mots de passe ne correspondent pas", fg="red")
         elif test == True:
             self.status_label.config(text="Compte créé !", fg="green")
+            self.show_login()
         elif test == False:
             self.status_label.config(text="Username taken", fg="red")
 
@@ -94,6 +96,10 @@ class Ui():
 
         self.status_label = tkinter.Label(self.frame, text="", bg="black", font=("Arial", 10))
         self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
+
+    def show_users(self):
+        self.clear_frame()
+        self.db.users(self.curUser)
 
 class Main():
     def __init__(self):
@@ -145,6 +151,7 @@ class DbHandler():
         for row in ret:
             if row[0] == username:
                 print("Username taken")
+                conn.close()
                 return False
         bytes = password.encode('utf-8')
         salt = bcrypt.gensalt()
@@ -164,15 +171,31 @@ class DbHandler():
         conn.commit()
         ret = fd.fetchall()
         if not ret:
-            print("No user '" + username + "' in db")   
+            print("No user '" + username + "' in db")
+            conn.close()
             return -1         
         for row in ret:
             if row[0] == username:
                 if bcrypt.checkpw(bytes, row[1]):
                     print('success')
+                    conn.close()
                     return True
                 else:
+                    conn.close()
                     return False
+                
+    def users(self,curUser):
+        conn = self.connect()
+        if conn == False:
+            return False
+        fd = conn.cursor()
+        fd.execute("SELECT Username FROM Users") 
+        conn.commit()
+        ret = fd.fetchall()
+        for row in ret:
+            if row[0] == curUser:
+                continue
+            print(row)           
 
 
 if __name__ == "__main__":
