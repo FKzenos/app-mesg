@@ -1,13 +1,17 @@
 import sqlite3
 import bcrypt
 import tkinter
+from Crypto.PublicKey import RSA
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.Random import get_random_bytes
+import os
 
 DB = "test.db"
 
 class Ui():
     def __init__(self):
         self.window = tkinter.Tk()
-        self.window.geometry("920x480")
+        self.window.geometry("920x700")
         self.window.title("Connexion / Inscription")
         self.window.configure(bg="black")
 
@@ -53,6 +57,7 @@ class Ui():
         pwd = self.signup_password.get()
         confirm = self.signup_confirm.get()
         
+        
 
         if not user or not pwd:
             self.status_label.config(text="Veuillez remplir tous les champs", fg="red")
@@ -85,6 +90,9 @@ class Ui():
 
         tkinter.Button(self.frame, text="Créer le compte", command=self.register, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=0, pady=5)
         tkinter.Button(self.frame, text="Retour", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=5)
+
+        self.status_label = tkinter.Label(self.frame, text="", bg="gray", font=("Arial", 10))
+        self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
 
     def show_users(self):
         self.clear_frame()
@@ -123,9 +131,25 @@ class Ui():
         self.chat_display.grid(row=1, column=0, columnspan=2, pady=10)
 
         chats = self.db.chat(user, self.curUser)
+        conn = self.db.connect()
+        if conn == False:
+            return False
+        fd = conn.cursor()
+        f = open("./keys/" + self.curUser + "/key.pem")
+        key = f.read()
+        print(key)
+        cipher_rsa = PKCS1_OAEP.new(RSA.import_key(key))
         for chat in chats:
+
+
+            plain_text = cipher_rsa.decrypt(chat[2])
             self.chat_display.config(state="normal")
-            self.chat_display.insert("end", f"{chat[1]}: {chat[2]}\n")
+            if chat[0] == self.curUser:
+
+                self.chat_display.insert("end", f"{chat[1]}: {plain_text}\n")
+
+            else:
+                self.chat_display.insert("end", f"{chat[1]}: {chat[2]}\n")
             self.chat_display.config(state="disabled")
 
         self.chat_input = tkinter.Entry(self.frame, fg="black", bg="#ddd", font=("Arial", 12), width=40)
@@ -133,7 +157,6 @@ class Ui():
 
         send_button = tkinter.Button(self.frame, text="Envoyer",command=lambda: [self.db.createMessage(self.curUser,user,self.chat_input.get()),self.show_chat(user)], bg="#879ACB", fg="black", font=("Arial", 12))
         send_button.grid(row=2, column=1, pady=10)
-
         back_button = tkinter.Button(self.frame, text="Retour", command=self.show_users, bg="#879ACB", fg="black", font=("Arial", 12))
         back_button.grid(row=3, column=0, columnspan=1, pady=10)
         refresh_button = tkinter.Button(self.frame, text="refresh", command=lambda: self.show_chat(user), bg="#879ACB", fg="black", font=("Arial", 12))
@@ -189,7 +212,7 @@ class DbHandler():
         if conn == False:
             return -2
         fd = conn.cursor()
-        fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
+        fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password, PubKey)")
         conn.commit()
         fd.execute("SELECT Username FROM Users WHERE Username = ?;", (username,))
         ret = fd.fetchall()
@@ -201,9 +224,21 @@ class DbHandler():
         bytes = password.encode('utf-8')
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(bytes, salt)
-  
-        fd.execute("INSERT INTO Users VALUES(?,?)", (username, hashed))
-        conn.commit()
+        if os.path.exists("./keys/" + username + "/key..pem"):
+            os.remove("./keys/" + username + "/key.pem")
+            os.rmdir("./keys/" + username)
+            os.mkdir("./keys/" + username)
+        else:
+            os.mkdir("./keys/" + username)
+
+        f = open("./keys/" + username + "/key.pem", "x")
+        key = RSA.generate(2048)
+        private_key = key.export_key()
+        public_key = key.publickey().export_key()
+        f.write(str(private_key))
+        f.close()
+        fd.execute("INSERT INTO Users VALUES(?,?,?)", (username, hashed, public_key))
+        conn.commit() 
         conn.close()
         return True
         
@@ -256,8 +291,8 @@ class DbHandler():
         fd = conn.cursor()
         fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient, Emitter, Message)")
         conn.commit()
-        fd.execute("INSERT INTO Chat VALUES(?,?,?)", (user,curUser,"message example"))
-        conn.commit()
+        #fd.execute("INSERT INTO Chat VALUES(?,?,?)", (user,curUser,"message example"))
+        #conn.commit()
         fd.execute("SELECT * FROM Chat WHERE (Recipient = ? AND Emitter = ?) OR ((Recipient = ? AND Emitter = ?));", (user,curUser,curUser,user))
         conn.commit()
         ret = fd.fetchall()
@@ -271,7 +306,13 @@ class DbHandler():
         fd = conn.cursor()
         fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient, Emitter, Message)")
         conn.commit()
-        fd.execute("INSERT INTO Chat VALUES(?,?,?)", (recipient,emitter,message))
+        fd.execute("SELECT PubKey from Users WHERE Username =?;", (recipient,))
+        ret = fd.fetchall()
+        public_key = ret[0][0]
+        bytes = message.encode("utf-8")
+        cipher_rsa = PKCS1_OAEP.new(RSA.import_key(public_key))
+        cipher_text = cipher_rsa.encrypt(bytes)
+        fd.execute("INSERT INTO Chat VALUES(?,?,?)", (recipient,emitter,cipher_text))
         conn.commit()
         conn.close()
 
