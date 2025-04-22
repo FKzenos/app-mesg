@@ -2,6 +2,7 @@ import sqlite3
 import bcrypt
 import tkinter
 from tkinter import ttk
+from deep_translator import GoogleTranslator
 
 DB = "test.db"
 
@@ -9,9 +10,8 @@ class Ui():
     def __init__(self):
         self.window = tkinter.Tk()
         self.window.geometry("920x700")
-        self.window.title("Connexion / Inscription")
+        self.window.title("Application de messagerie")
         self.window.configure(bg="#2C3E50") 
-        
         self.style = ttk.Style()
         self.style.theme_use("clam")
         self.style.configure("TLabel", background="#2C3E50", foreground="white", font=("Arial", 12))
@@ -22,6 +22,7 @@ class Ui():
         self.frame = tkinter.Frame(self.window, bg="#34495E", bd=5, relief="ridge")
         self.frame.place(relx=0.5, rely=0.5, anchor="center")
         self.db = DbHandler()
+        self.selected_language = "fr" 
     
     def clear_frame(self):
         for widget in self.frame.winfo_children():
@@ -135,8 +136,25 @@ class Ui():
 
         self.chat_input = tkinter.Entry(self.frame, fg="black", bg="#ddd", font=("Arial", 12), width=40)
         self.chat_input.grid(row=2, column=0, pady=10)
+        languages = {
+            "Français": "fr",
+            "Anglais": "en",
+            "Espagnol": "es",
+            "Allemand": "de",
+            "Italien": "it",
+            "Japonais": "ja"
+        }
+        tkinter.Label(self.frame, text="Langue de traduction :", bg="#2C3E50", font=("Arial", 10)).grid(row=4, column=0, sticky="e", padx=10)
+        self.lang_dropdown = ttk.Combobox(self.frame, values=list(languages.keys()), font=("Arial", 10))
+        self.lang_dropdown.set("Français")
+        self.lang_dropdown.grid(row=4, column=1, sticky="w", padx=10)
 
-        send_button = tkinter.Button(self.frame, text="Envoyer", command=lambda: [self.db.createMessage(self.curUser, user, self.chat_input.get()), self.show_chat(user)], bg="#879ACB", fg="black", font=("Arial", 12))
+        def update_language(event):
+            lang_name = self.lang_dropdown.get()
+            self.selected_language = languages[lang_name]
+
+        self.lang_dropdown.bind("<<ComboboxSelected>>", update_language)
+        send_button = tkinter.Button(self.frame, text="Envoyer", command=lambda: [self.db.createMessage(self.curUser, user, GoogleTranslator(source='auto', target=self.selected_language).translate(self.chat_input.get())), self.show_chat(user)], bg="#879ACB", fg="black", font=("Arial", 12))
         send_button.grid(row=2, column=1, pady=10)
 
         back_button = tkinter.Button(self.frame, text="Retour", command=self.show_users, bg="#879ACB", fg="black", font=("Arial", 12))
