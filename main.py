@@ -26,7 +26,7 @@ class Ui():
 
         self.frame = tkinter.Frame(self.window, bg="#34495E", bd=5, relief="ridge")
         self.frame.place(relx=0.5, rely=0.5, anchor="center")
-        
+        self.selected_language = "fr" 
         self.db = DbHandler()
     
     def clear_frame(self):
@@ -61,6 +61,8 @@ class Ui():
         login_button.grid(row=2, column=0, pady=10)
         signup_button = tkinter.Button(self.frame, text="Inscription", command=self.show_signup, bg="#879ACB", fg="black", font=("Arial", 12))
         signup_button.grid(row=2, column=1, pady=10)
+        quit_button = tkinter.Button(self.frame, text="Quitter", command=self.window.quit, bg="#E74C3C", fg="black", font=("Arial", 12))
+        quit_button.grid(row=3, column=0, columnspan=2, pady=10)
 
     def register(self):
         user = self.signup_username.get()
@@ -172,6 +174,26 @@ class Ui():
             print(f"Erreur inattendue : {e}")
             messagebox.showerror("Erreur", "Impossible de charger la clé privée.")
             return
+            languages = {
+            "Français": "fr",
+            "Anglais": "en",
+            "Espagnol": "es",
+            "Allemand": "de",
+            "Italien": "it",
+            "Japonais": "ja"
+        }
+
+        tkinter.Label(self.frame, text="Langue de traduction :", bg="#2C3E50", font=("Arial", 10)).grid(row=4, column=0, sticky="e", padx=10)
+        self.lang_dropdown = ttk.Combobox(self.frame, values=list(languages.keys()), font=("Arial", 10))
+        self.lang_dropdown.set("Français")
+        self.lang_dropdown.grid(row=4, column=1, sticky="w", padx=10)
+
+        def update_language(event):
+            lang_name = self.lang_dropdown.get()
+            self.selected_language = languages[lang_name]
+
+        self.lang_dropdown.bind("<<ComboboxSelected>>", update_language)
+
 
         # Affichage des messages décryptés
         for chat in chats:
@@ -203,7 +225,7 @@ class Ui():
         self.chat_input.grid(row=2, column=0, pady=10)
 
         # Bouton d'envoi du message
-        send_button = tkinter.Button(self.frame, text="Envoyer", command=lambda: [self.db.createMessage(user, self.curUser,self.chat_input.get())], bg="#879ACB", fg="black", font=("Arial", 12))
+        send_button = tkinter.Button(self.frame, text="Envoyer", command=lambda: [self.db.createMessage(user, self.curUser,GoogleTranslator(source='auto', target=self.selected_language).translate(self.chat_input.get())),self.show_chat(user)], bg="#879ACB", fg="black", font=("Arial", 12))
         send_button.grid(row=2, column=1, pady=10)
 
         # Bouton "Retour" pour revenir à la liste des utilisateurs
