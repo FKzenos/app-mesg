@@ -53,10 +53,6 @@ class Ui():
         signup_button = tkinter.Button(self.frame, text="Inscription", command=self.show_signup, bg="#879ACB", fg="black", font=("Arial", 12))
         signup_button.grid(row=2, column=1, pady=10)
 
-
-
-
-
     def register(self):
         user = self.signup_username.get()
         pwd = self.signup_password.get()
