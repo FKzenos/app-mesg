@@ -111,6 +111,7 @@ class Ui():
 
     def show_chat(self, user):
         self.clear_frame()
+        self.db.chat(user,self.curUser)
         tkinter.Label(self.frame, text="Chat avec " + user, font=("Arial", 14, "bold"), bg="black").grid(row=0, column=0, columnspan=2, pady=(0, 20))
         tkinter.Button(self.frame, text="Retour", command=self.show_users, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=10)
 
@@ -223,14 +224,24 @@ class DbHandler():
         fd = conn.cursor()
         fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient, Emitter, Message)")
         conn.commit()
-        fd.execute("SELECT * FROM Chat WHERE (Recipient = ? AND Emitter = ?) OR (Recipient = ? AND Emitter = ?) ;", (user,curUser,curUser,user))
+        fd.execute("INSERT INTO Chat VALUES(?,?,?)", (user,curUser,"message example"))
+        conn.commit()
+        fd.execute("SELECT * FROM Chat WHERE Recipient = ? AND Emitter = ?;", (user,curUser))
         conn.commit()
         ret = fd.fetchall()
-        for row in ret:
-            if row[0] == curUser:
-                continue
-            print(row)
+        return ret
 
+
+    def createMessage(self, emitter, recipient, message):
+        conn = self.connect()
+        if conn == False:
+            return False
+        fd = conn.cursor()
+        fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient, Emitter, Message)")
+        conn.commit()
+        fd.execute("INSERT INTO Chat VALUES(?,?,?)", (recipient,emitter,message))
+        conn.commit()
+        conn.close()
 
 
 
