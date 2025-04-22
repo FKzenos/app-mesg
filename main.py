@@ -65,7 +65,7 @@ class Ui():
             self.status_label.config(text="Veuillez remplir tous les champs", fg="red")
         test = self.db.createUser(user,pwd,confirm)
     
-        if test == 0:
+        if test == -1:
             self.status_label.config(text="Les mots de passe ne correspondent pas", fg="red")
         elif test == True:
             self.status_label.config(text="Compte créé !", fg="green")
@@ -78,22 +78,22 @@ class Ui():
         tkinter.Label(self.frame, text="Créer un compte", font=("Arial", 14, "bold"), bg="black").grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         tkinter.Label(self.frame, text="Nom utilisateur", bg="black", font=("Arial", 12)).grid(row=1, column=0, sticky="w")
-        signup_username = tkinter.Entry(self.frame, bg="#ddd", font=("Arial", 12))
-        signup_username.grid(row=1, column=1)
+        self.signup_username = tkinter.Entry(self.frame, bg="#ddd", font=("Arial", 12))
+        self.signup_username.grid(row=1, column=1)
 
         tkinter.Label(self.frame, text="Mot de passe", bg="black", font=("Arial", 12)).grid(row=2, column=0, sticky="w")
-        signup_password = tkinter.Entry(self.frame, show="*", bg="#ddd", font=("Arial", 12))
-        signup_password.grid(row=2, column=1)
+        self.signup_password = tkinter.Entry(self.frame, show="*", bg="#ddd", font=("Arial", 12))
+        self.signup_password.grid(row=2, column=1)
 
         tkinter.Label(self.frame, text="Confirmer mot de passe", bg="black", font=("Arial", 12)).grid(row=3, column=0, sticky="w")
-        signup_confirm = tkinter.Entry(self.frame, show="*", bg="#ddd", font=("Arial", 12))
-        signup_confirm.grid(row=3, column=1)
+        self.signup_confirm = tkinter.Entry(self.frame, show="*", bg="#ddd", font=("Arial", 12))
+        self.signup_confirm.grid(row=3, column=1)
 
         tkinter.Button(self.frame, text="Créer le compte", command=self.register, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=0, pady=10)
         tkinter.Button(self.frame, text="Retour", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=10)
 
-        status_label = tkinter.Label(self.frame, text="", bg="black", font=("Arial", 10))
-        status_label.grid(row=5, column=0, columnspan=2, pady=5)
+        self.status_label = tkinter.Label(self.frame, text="", bg="black", font=("Arial", 10))
+        self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
 
 class Main():
     def __init__(self):
@@ -133,10 +133,10 @@ class DbHandler():
     def createUser(self, username, password, passcheck):
         if password != passcheck:
             print("passwords do not match")
-            return 0
+            return -1
         conn = self.connect()
         if conn == False:
-            return -1
+            return -2
         fd = conn.cursor()
         fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
         conn.commit()
