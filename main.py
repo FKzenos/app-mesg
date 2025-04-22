@@ -73,7 +73,7 @@ class Ui():
             self.status_label.config(text="Username taken", fg="red")
 
     
-    def show_signup(self, db):
+    def show_signup(self):
         self.clear_frame()
         tkinter.Label(self.frame, text="Créer un compte", font=("Arial", 14, "bold"), bg="black").grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
