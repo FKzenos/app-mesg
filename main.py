@@ -104,6 +104,9 @@ class Ui():
         self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
         tkinter.Button(self.frame, text="Déconnexion", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=10)
 
+    def show_chat(self, user):
+        self.clear_frame()
+
 class Main():
     def __init__(self):
         self.curUser = ""
@@ -170,6 +173,8 @@ class DbHandler():
             return False
         fd = conn.cursor()
         bytes = password.encode('utf-8')
+        fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
+        conn.commit()
         fd.execute("SELECT Username,Password FROM Users WHERE Username = ?;", (username,))
         conn.commit()
         ret = fd.fetchall()
@@ -192,14 +197,33 @@ class DbHandler():
         if conn == False:
             return False
         fd = conn.cursor()
+        #fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
+        #conn.commit()
         fd.execute("SELECT Username FROM Users") 
         conn.commit()
         ret = fd.fetchall()
+        conn.close()
         return ret
         for row in ret:
             if row[0] == curUser:
                 continue
-            print(row)           
+            print(row)
+           
+    def chat(self, user, curUser):
+        conn = self.connect()
+        if conn == False:
+            return False
+        fd = conn.cursor()
+        fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient, Emitter, Message)")
+        conn.commit()
+        fd.execute("SELECT * FROM Chat WHERE (Recipient = ? AND Emitter = ?) OR (Recipient = ? AND Emitter = ?) ;", (user,curUser,curUser,user))
+        conn.commit()
+        ret = fd.fetchall()
+        for row in ret:
+            if row[0] == curUser:
+                continue
+            print(row)
+
 
 
 if __name__ == "__main__":
