@@ -1,17 +1,25 @@
 import sqlite3
 import bcrypt
 import tkinter
+from tkinter import ttk
 
 DB = "test.db"
 
 class Ui():
     def __init__(self):
         self.window = tkinter.Tk()
-        self.window.geometry("920x480")
+        self.window.geometry("920x700")
         self.window.title("Connexion / Inscription")
-        self.window.configure(bg="black")
+        self.window.configure(bg="#2C3E50") 
+        
+        self.style = ttk.Style()
+        self.style.theme_use("clam")
+        self.style.configure("TLabel", background="#2C3E50", foreground="white", font=("Arial", 12))
+        self.style.configure("TButton", background="#3498DB", foreground="white", font=("Arial", 12), padding=5)
+        self.style.map("TButton", background=[("active", "#2980B9")])
+        self.style.configure("TEntry", font=("Arial", 12), padding=5)
 
-        self.frame = tkinter.Frame(self.window, bg="gray")
+        self.frame = tkinter.Frame(self.window, bg="#34495E", bd=5, relief="ridge")
         self.frame.place(relx=0.5, rely=0.5, anchor="center")
         self.db = DbHandler()
     
@@ -37,10 +45,10 @@ class Ui():
     
         global username_entry, password_entry, login_label
 
-        tkinter.Label(self.frame, text="Nom utilisateur", bg="gray", font=("Arial", 12)).grid(row=0, column=0, sticky="w", pady=5)
+        tkinter.Label(self.frame, text="Nom utilisateur", bg="#2C3E50", font=("Arial", 12)).grid(row=0, column=0, sticky="w", pady=5)
         username_entry = tkinter.Entry(self.frame, fg="black", bg="#ddd", font=("Arial", 12))
         username_entry.grid(row=0, column=1, pady=5)
-        tkinter.Label(self.frame, text="Mot de passe", bg="gray", font=("Arial", 12)).grid(row=1, column=0, sticky="w", pady=5)
+        tkinter.Label(self.frame, text="Mot de passe", bg="#2C3E50", font=("Arial", 12)).grid(row=1, column=0, sticky="w", pady=5)
         password_entry = tkinter.Entry(self.frame, show="*",fg="black", bg="#ddd", font=("Arial", 12))
         password_entry.grid(row=1, column=1, pady=5)
         login_button = tkinter.Button(self.frame, text="connexion", command=self.login, bg="#879ACB", fg="black", font=("Arial", 12))
@@ -69,34 +77,30 @@ class Ui():
     
     def show_signup(self):
         self.clear_frame()
-        tkinter.Label(self.frame, text="Créer un compte", font=("Arial", 14, "bold"), bg="gray").grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        tkinter.Label(self.frame, text="Créer un compte", font=("Arial", 14, "bold"), bg="#2C3E50").grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
-        tkinter.Label(self.frame, text="Nom utilisateur", bg="gray", font=("Arial", 12)).grid(row=1, column=0, sticky="w")
+        tkinter.Label(self.frame, text="Nom utilisateur", bg="#2C3E50", font=("Arial", 12)).grid(row=1, column=0, sticky="w")
         self.signup_username = tkinter.Entry(self.frame, fg="black", bg="#ddd", font=("Arial", 12))
         self.signup_username.grid(row=1, column=1)
 
-        tkinter.Label(self.frame, text="Mot de passe", bg="gray", font=("Arial", 12)).grid(row=2, column=0, sticky="w")
+        tkinter.Label(self.frame, text="Mot de passe", bg="#2C3E50", font=("Arial", 12)).grid(row=2, column=0, sticky="w")
         self.signup_password = tkinter.Entry(self.frame, show="*", fg="black", bg="#ddd", font=("Arial", 12))
         self.signup_password.grid(row=2, column=1)
 
-        tkinter.Label(self.frame, text="Confirmer mot de passe", bg="gray", font=("Arial", 12)).grid(row=3, column=0, sticky="w")
+        tkinter.Label(self.frame, text="Confirmer mot de passe", bg="#2C3E50", font=("Arial", 12)).grid(row=3, column=0, sticky="w")
         self.signup_confirm = tkinter.Entry(self.frame, show="*", fg="black", bg="#ddd", font=("Arial", 12))
         self.signup_confirm.grid(row=3, column=1)
 
         tkinter.Button(self.frame, text="Créer le compte", command=self.register, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=0, pady=5)
         tkinter.Button(self.frame, text="Retour", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=5)
+       
+        self.status_label = tkinter.Label(self.frame, text="", bg="#2C3E50", font=("Arial", 10))
+        self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
+
 
     def show_users(self):
         self.clear_frame()
-        tkinter.Label(self.frame, text="Liste des utilisateurs", font=("Arial", 14, "bold"), bg="gray").grid(row=0, column=0, columnspan=2, pady=(0, 20))
-        
-        canvas = tkinter.Canvas(self.frame, bg="black", highlightthickness=0)
-        scrollbar = tkinter.Scrollbar(self.frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tkinter.Frame(canvas, bg="black")
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-
-        canvas.grid(row=1, column=0, columnspan=2, sticky="nsew")
-        scrollbar.grid(row=1, column=2, sticky="ns")
+        tkinter.Label(self.frame, text="Liste des utilisateurs", font=("Arial", 14, "bold"), bg="#2C3E50").grid(row=0, column=0, columnspan=2, pady=(0, 20))
         
         users = self.db.users(self.curUser)
         compter = 0
@@ -109,15 +113,15 @@ class Ui():
                 padding += 1
                 compter = 1
             
-            tkinter.Button(scrollable_frame, text=user, command=lambda u=user[0]: self.show_chat(u), bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=compter, column=(padding), pady=5)
+            tkinter.Button(self.frame, text=user, command=lambda u=user[0]: self.show_chat(u), bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=compter, column=(padding), pady=5)
 
-        self.status_label = tkinter.Label(self.frame, text="", bg="gray", font=("Arial", 10))
-        self.status_label.grid(row=1, column=0, columnspan=2, pady=5)
-        tkinter.Button(self.frame, text="Déconnexion", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=3, column=1, pady=10)
+        self.status_label = tkinter.Label(self.frame, text="", bg="#2C3E50", font=("Arial", 10))
+        self.status_label.grid(row=compter + 1, column=0, columnspan=2, pady=5)
+        tkinter.Button(self.frame, text="Déconnexion", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=compter + 20, column=0, columnspan=2, pady=10)
 
     def show_chat(self, user):
         self.clear_frame()
-        tkinter.Label(self.frame, text=f"Chat avec {user}", font=("Arial", 14, "bold"), bg="gray", fg="white").grid(row=0, column=0, columnspan=2, pady=(0, 20))
+        tkinter.Label(self.frame, text=f"Chat avec {user}", font=("Arial", 14, "bold"), bg="#2C3E50", fg="white").grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         self.chat_display = tkinter.Text(self.frame, bg="black", fg="white", font=("Arial", 12), state="disabled", width=50, height=20)
         self.chat_display.grid(row=1, column=0, columnspan=2, pady=10)
@@ -127,11 +131,12 @@ class Ui():
             self.chat_display.config(state="normal")
             self.chat_display.insert("end", f"{chat[1]}: {chat[2]}\n")
             self.chat_display.config(state="disabled")
+        self.chat_display.see("end")
 
         self.chat_input = tkinter.Entry(self.frame, fg="black", bg="#ddd", font=("Arial", 12), width=40)
         self.chat_input.grid(row=2, column=0, pady=10)
 
-        send_button = tkinter.Button(self.frame, text="Envoyer",command=lambda: [self.db.createMessage(self.curUser,user,self.chat_input.get()),self.show_chat(user)], bg="#879ACB", fg="black", font=("Arial", 12))
+        send_button = tkinter.Button(self.frame, text="Envoyer", command=lambda: [self.db.createMessage(self.curUser, user, self.chat_input.get()), self.show_chat(user)], bg="#879ACB", fg="black", font=("Arial", 12))
         send_button.grid(row=2, column=1, pady=10)
 
         back_button = tkinter.Button(self.frame, text="Retour", command=self.show_users, bg="#879ACB", fg="black", font=("Arial", 12))
