@@ -139,25 +139,31 @@ class Ui():
         self.chat_display = tkinter.Text(self.frame, bg="black", fg="white", font=("Arial", 12), state="disabled", width=50, height=20)
         self.chat_display.grid(row=1, column=0, columnspan=2, pady=10)
 
-        # Récupération des messages depuis la base de données
         chats = self.db.chat(user, self.curUser)
-
-        # Chargement de la clé RSA privée pour le déchiffrement
         try:
-            # Ouvre la clé en mode binaire et tente de la lire
             with open(f"./keys/{self.curUser}/key.pem", "rb") as f:
                 key = f.read()
-
-                # Vérifie que la clé commence et termine correctement
                 if b"-----BEGIN" not in key or b"-----END" not in key:
                     raise ValueError("Le format de la clé n'est pas PEM.")
-
-                # Nettoie les espaces blancs pour éviter tout problème de format
                 key = key.strip()
-
-                # Charge la clé RSA au format PEM
                 rsa_key = RSA.import_key(key)
                 cipher_rsa = PKCS1_OAEP.new(rsa_key)
+        except ValueError as e:
+            print(f"Erreur lors du chargement de la clé : {e}")
+            messagebox.showerror("Erreur", "Le format de la clé RSA n'est pas pris en charge ou invalide.")
+            return
+        except Exception as e:
+            print(f"Erreur inattendue : {e}")
+            messagebox.showerror("Erreur", "Impossible de charger la clé privée.")
+            return
+        try:
+            with open(f"./keys/{user}/key.pem", "rb") as ff:
+                userkey = ff.read()
+                if b"-----BEGIN" not in userkey or b"-----END" not in userkey:
+                    raise ValueError("Le format de la clé n'est pas PEM.")
+                userkey = userkey.strip()
+                userrsa_key = RSA.import_key(userkey)
+                usercipher_rsa = PKCS1_OAEP.new(userrsa_key)
         except ValueError as e:
             print(f"Erreur lors du chargement de la clé : {e}")
             messagebox.showerror("Erreur", "Le format de la clé RSA n'est pas pris en charge ou invalide.")
@@ -170,12 +176,20 @@ class Ui():
         # Affichage des messages décryptés
         for chat in chats:
             self.chat_display.config(state="normal")
-            try:
-                decrypted = cipher_rsa.decrypt(chat[2])
-                message_text = decrypted.decode("utf-8")
-            except Exception as e:
-                message_text = "[Erreur de déchiffrement]"
-                print(f"Erreur de déchiffrement: {e}")
+            if (chat[0] == self.curUser):
+                try:
+                    decrypted = cipher_rsa.decrypt(chat[2])
+                    message_text = decrypted.decode("utf-8")
+                except Exception as e:
+                    message_text = "[Erreur de déchiffrement]"
+                    print(f"Erreur de déchiffrement: {e}")
+            elif (chat[0] == user):
+                try:
+                    decrypted = usercipher_rsa.decrypt(chat[2])
+                    message_text = decrypted.decode("utf-8")
+                except Exception as e:
+                    message_text = "[Erreur de déchiffrement]"
+                    print(f"Erreur de déchiffrement: {e}")
 
             # Insère le message décrypté dans la zone de chat
             self.chat_display.insert("end", f"{chat[1]}: {message_text}\n")
@@ -189,7 +203,7 @@ class Ui():
         self.chat_input.grid(row=2, column=0, pady=10)
 
         # Bouton d'envoi du message
-        send_button = tkinter.Button(self.frame, text="Envoyer", command=lambda: [self.send_message(user)], bg="#879ACB", fg="black", font=("Arial", 12))
+        send_button = tkinter.Button(self.frame, text="Envoyer", command=lambda: [self.db.createMessage(user, self.curUser,self.chat_input.get())], bg="#879ACB", fg="black", font=("Arial", 12))
         send_button.grid(row=2, column=1, pady=10)
 
         # Bouton "Retour" pour revenir à la liste des utilisateurs
@@ -200,28 +214,6 @@ class Ui():
         refresh_button = tkinter.Button(self.frame, text="Actualiser", command=lambda: self.show_chat(user), bg="#879ACB", fg="black", font=("Arial", 12))
         refresh_button.grid(row=3, column=1, pady=10)   
 
-        
-           
-class Main():
-    def __init__(self):
-        self.curUser = ""
-
-    def main(self):
-        ui = Ui()
-        ui.show_login()
-        ui.window.mainloop()
-        """conn = sqlite3.connect(DB)
-        if conn == False:
-            return()
-        fd = conn.cursor()
-        fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
-        fd.execute('''INSERT INTO Users VALUES('machin', 'test'),('truc','bidule')''')
-        conn.commit()
-        fd.execute("SELECT * FROM Users")
-        ret = fd.fetchall()
-        for row in ret:
-            print(row)
-        print(conn.total_changes)"""
 
 class DbHandler():
     def connect(self):
@@ -257,14 +249,18 @@ class DbHandler():
         bytes = password.encode('utf-8')
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(bytes, salt)
-        if os.path.exists("./keys/" + username + "/key.pem"):
-            os.remove("./keys/" + username + "/key.pem")
-            os.rmdir("./keys/" + username)
-            os.mkdir("./keys/" + username)
-        else:
-            os.mkdir("./keys/" + username)
+        if os.path.exists("./keys/") == False:
+            os.mkdir("./keys")
+            if (os.path.exists("./keys/" + username)) == False:
+                os.mkdir("./keys/" + username)                
+                if os.path.exists("./keys/" + username + "/key.pem"):
+                    os.remove("./keys/" + username + "/key.pem")
+            else:
+                os.mkdir("./keys" + username)
+        elif (os.path.exists("./keys/" + username)) == False:
+            os.mkdir("./keys/" + username)   
 
-        f = open("./keys/" + username + "/key.pem", "x")
+        f = open("./keys/" + username + "/key.pem", "w+")
         key = RSA.generate(2048)
         private_key = key.export_key().decode('utf-8')
         public_key = key.publickey().export_key().decode('utf-8')
@@ -281,7 +277,7 @@ class DbHandler():
             return False
         fd = conn.cursor()
         bytes = password.encode('utf-8')
-        fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
+        fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password, PubKey)")
         conn.commit()
         fd.execute("SELECT Username,Password FROM Users WHERE Username = ?;", (username,))
         conn.commit()
@@ -305,8 +301,6 @@ class DbHandler():
         if conn == False:
             return False
         fd = conn.cursor()
-        #fd.execute("CREATE TABLE IF NOT EXISTS Users(Username, Password)")
-        #conn.commit()
         fd.execute("SELECT Username FROM Users") 
         conn.commit()
         ret = fd.fetchall()
@@ -324,51 +318,47 @@ class DbHandler():
         fd = conn.cursor()
         fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient, Emitter, Message)")
         conn.commit()
-        #fd.execute("INSERT INTO Chat VALUES(?,?,?)", (user,curUser,"message example"))
-        #conn.commit()
         fd.execute("SELECT * FROM Chat WHERE (Recipient = ? AND Emitter = ?) OR ((Recipient = ? AND Emitter = ?));", (user,curUser,curUser,user))
         conn.commit()
         ret = fd.fetchall()
         return ret
-        for row in ret:
-            print("FROM DB:", row)
 
 
-def createMessage(self, emitter, recipient, message):
-    conn = self.connect()
-    if not conn:
-        return False
-    fd = conn.cursor()
-    fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient TEXT, Emitter TEXT, Message BLOB)")
-    conn.commit()
-    
-    fd.execute("SELECT PubKey FROM Users WHERE Username = ?;", (recipient,))
-    ret = fd.fetchone()
-    if not ret:
-        print("Public key not found.")
-        return False
-    public_key = ret[0]  # La clé publique récupérée est une chaîne
-    bytes_msg = message.encode("utf-8")
-    
-    try:
-        # Convertir la clé publique en bytes si nécessaire
-        if isinstance(public_key, str):  # Si la clé est une chaîne, la convertir en bytes
-            public_key = public_key.encode('utf-8')
-        
-        # Importer la clé publique en bytes
-        rsa_key = RSA.import_key(public_key)
-        cipher_rsa = PKCS1_OAEP.new(rsa_key)
-        
-        # Chiffrer le message
-        cipher_text = cipher_rsa.encrypt(bytes_msg)
-        
-        # Enregistrer le message chiffré dans la base de données
-        fd.execute("INSERT INTO Chat(Recipient, Emitter, Message) VALUES (?, ?, ?)", (recipient, emitter, cipher_text))
+    def createMessage(self, emitter, recipient, message):
+        conn = self.connect()
+        if not conn:
+            return False
+        fd = conn.cursor()
+        fd.execute("CREATE TABLE IF NOT EXISTS Chat(Recipient TEXT, Emitter TEXT, Message BLOB)")
         conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Erreur lors du chiffrement du message: {e}")
-        return False
+        fd.execute("SELECT PubKey FROM Users WHERE Username = ?;", (recipient,))
+        ret = fd.fetchone()
+        if not ret:
+            print("Public key not found.")
+            return False
+        public_key = ret[0]
+        bytes_msg = message.encode("utf-8")
+        try:
+            if isinstance(public_key, str):
+                public_key = public_key.encode('utf-8')
+            rsa_key = RSA.import_key(public_key)
+            cipher_rsa = PKCS1_OAEP.new(rsa_key)
+            cipher_text = cipher_rsa.encrypt(bytes_msg)
+            fd.execute("INSERT INTO Chat(Recipient, Emitter, Message) VALUES (?, ?, ?)", (recipient, emitter, cipher_text))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"Erreur lors du chiffrement du message: {e}")
+            return False
+
+class Main():
+    def __init__(self):
+        self.curUser = ""
+
+    def main(self):
+        ui = Ui()
+        ui.show_login()
+        ui.window.mainloop()
 
 
 
