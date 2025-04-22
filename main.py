@@ -105,7 +105,6 @@ class Ui():
         self.status_label.grid(row=5, column=0, columnspan=2, pady=5)
         tkinter.Button(self.frame, text="Déconnexion", command=self.show_login, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=10)
 
-
         
     
         
