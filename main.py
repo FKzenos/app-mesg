@@ -11,7 +11,7 @@ class Ui():
         self.window.title("Connexion / Inscription")
         self.window.configure(bg="black")
 
-        self.frame = tkinter.Frame(self.window, bg="black")
+        self.frame = tkinter.Frame(self.window, bg="gray")
         self.frame.place(relx=0.5, rely=0.5, anchor="center")
         self.db = DbHandler()
     
@@ -111,10 +111,33 @@ class Ui():
 
     def show_chat(self, user):
         self.clear_frame()
-        self.db.chat(user,self.curUser)
-        tkinter.Label(self.frame, text="Chat avec " + user, font=("Arial", 14, "bold"), bg="black").grid(row=0, column=0, columnspan=2, pady=(0, 20))
-        tkinter.Button(self.frame, text="Retour", command=self.show_users, bg="#879ACB", fg="black", font=("Arial", 12)).grid(row=4, column=1, pady=10)
+        tkinter.Label(self.frame, text=f"Chat avec {user}", font=("Arial", 14, "bold"), bg="black", fg="white").grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
+        self.chat_display = tkinter.Text(self.frame, bg="black", fg="white", font=("Arial", 12), state="disabled", width=50, height=20)
+        self.chat_display.grid(row=1, column=0, columnspan=2, pady=10)
+
+        chats = self.db.chat(user, self.curUser)
+        for chat in chats:
+            self.chat_display.config(state="normal")
+            self.chat_display.insert("end", f"{chat[1]}: {chat[2]}\n")
+            self.chat_display.config(state="disabled")
+
+        self.chat_input = tkinter.Entry(self.frame, bg="#ddd", font=("Arial", 12), width=40)
+        self.chat_input.grid(row=2, column=0, pady=10)
+
+        send_button = tkinter.Button(self.frame, text="Envoyer",command=lambda: [self.db.createMessage(self.curUser,user,self.chat_input.get()),self.show_chat(user)], bg="#879ACB", fg="black", font=("Arial", 12))
+        send_button.grid(row=2, column=1, pady=10)
+
+        back_button = tkinter.Button(self.frame, text="Retour", command=self.show_users, bg="#879ACB", fg="black", font=("Arial", 12))
+        back_button.grid(row=3, column=0, columnspan=2, pady=10)
+    
+    def send_message(self, user):
+        msg = self.chat_input.get()
+        if msg:
+            self.chat_display.insert("end", f"{self.current_user} : {msg}\n")
+            self.chat_input.delete(0, "end")
+
+    
 class Main():
     def __init__(self):
         self.curUser = ""
