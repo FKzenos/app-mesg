@@ -135,11 +135,7 @@ class Ui():
         self.chat_display.grid(row=1, column=0, columnspan=2, pady=10)
 
         chats = self.db.chat(user, self.curUser)
-        conn = self.db.connect()
-        if conn == False:
-            return False
-        fd = conn.cursor()
-        f = open("./keys/" + self.curUser + "/key.pem")
+        f = open("./keys/" + self.curUser + "/key.pem", "rb")
         key = f.read()
         print(key)
         cipher_rsa = PKCS1_OAEP.new(RSA.import_key(key))
@@ -229,7 +225,7 @@ class DbHandler():
         bytes = password.encode('utf-8')
         salt = bcrypt.gensalt()
         hashed = bcrypt.hashpw(bytes, salt)
-        if os.path.exists("./keys/" + username + "/key..pem"):
+        if os.path.exists("./keys/" + username + "/key.pem"):
             os.remove("./keys/" + username + "/key.pem")
             os.rmdir("./keys/" + username)
             os.mkdir("./keys/" + username)
@@ -238,9 +234,9 @@ class DbHandler():
 
         f = open("./keys/" + username + "/key.pem", "x")
         key = RSA.generate(2048)
-        private_key = key.export_key()
-        public_key = key.publickey().export_key()
-        f.write(str(private_key))
+        private_key = key.export_key().decode('utf-8')
+        public_key = key.publickey().export_key().decode('utf-8')
+        f.write((private_key))
         f.close()
         fd.execute("INSERT INTO Users VALUES(?,?,?)", (username, hashed, public_key))
         conn.commit() 
