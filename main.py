@@ -249,7 +249,7 @@ class DbHandler():
         conn.commit()
         fd.execute("INSERT INTO Chat VALUES(?,?,?)", (user,curUser,"message example"))
         conn.commit()
-        fd.execute("SELECT * FROM Chat WHERE Recipient = ? AND Emitter = ?;", (user,curUser))
+        fd.execute("SELECT * FROM Chat WHERE (Recipient = ? AND Emitter = ?) OR ((Recipient = ? AND Emitter = ?));", (user,curUser,curUser,user))
         conn.commit()
         ret = fd.fetchall()
         return ret
